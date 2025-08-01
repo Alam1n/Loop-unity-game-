@@ -5,6 +5,7 @@ using UnityEngine;
 public class PuzzleManager : MonoBehaviour
 {
     public static PuzzleManager Instance;
+    public LevelPopupUI popupUI;
 
     private List<int> correctOrder = new List<int>(); // e.g., [1, 2, 3]
     private List<int> currentOrder = new List<int>();
@@ -29,6 +30,8 @@ public class PuzzleManager : MonoBehaviour
             {
                 Debug.Log("Puzzle Solved!");
                 // Trigger success event
+                popupUI.ShowPopup();
+
             }
             else
             {
@@ -36,6 +39,7 @@ public class PuzzleManager : MonoBehaviour
                 // Reset logic here
                 currentOrder.Clear();
                 // You may want to reset the nodes too (e.g., via an event)
+                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
             }
         }
     }
