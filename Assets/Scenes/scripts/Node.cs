@@ -22,7 +22,7 @@ public class PuzzleNode : MonoBehaviour
             isActivated = true;
             Debug.Log("Node activated, value: " + nodeValue);
             // Notify GameManager or accumulate value here
-            //PuzzleManager.Instance.RegisterNodeActivation(nodeValue);
+            PuzzleManager.Instance.RegisterNodeActivation(nodeValue);
         }
     }
 }
