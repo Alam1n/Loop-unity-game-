@@ -1,36 +1,41 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
+using System.Collections;
 
+[RequireComponent(typeof(Rigidbody2D))]
 public class PlayerMovement2D : MonoBehaviour
 {
-    [Header("Settings")]
+    [Header("Movement Settings")]
     public float moveSpeed = 5f;
-    public float jumpForce = 400f;
+    public float jumpForce = 12f;
     public float dashDistance = 5f;
     public float dashDuration = 0.15f;
 
-    [Header("Ground Check")]
+    [Header("Ground Detection")]
     public Transform groundCheck;
     public float groundCheckRadius = 0.2f;
     public LayerMask groundLayer;
 
     private Rigidbody2D rb;
     private PlayerInputActions inputActions;
-    private float moveInput;
+
+    private Vector2 moveInput;
     private bool isGrounded;
     private bool isDashing;
-    private bool jumpPressed;
-    private bool dashPressed;
+    private bool jumpQueued;
+    private bool dashQueued;
 
     private void Awake()
     {
+        rb = GetComponent<Rigidbody2D>();
         inputActions = new PlayerInputActions();
 
-        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<float>();
-        inputActions.Player.Move.canceled += ctx => moveInput = 0f;
+        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+        inputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
 
-        inputActions.Player.Jump.performed += ctx => jumpPressed = true;
-        inputActions.Player.Dash.performed += ctx => dashPressed = true;
+
+        inputActions.Player.Jump.performed += ctx => jumpQueued = true;
+        inputActions.Player.Dash.performed += ctx => dashQueued = true;
     }
 
     private void OnEnable() => inputActions.Enable();
@@ -38,8 +43,7 @@ public class PlayerMovement2D : MonoBehaviour
 
     private void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
-
+        rb.freezeRotation = true;
         if (!groundCheck)
         {
             GameObject gc = new GameObject("GroundCheck");
@@ -53,40 +57,40 @@ public class PlayerMovement2D : MonoBehaviour
     {
         isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        if (jumpPressed && isGrounded && !isDashing)
+        if (jumpQueued && isGrounded && !isDashing)
         {
-            rb.AddForce(Vector2.up * jumpForce);
+            Debug.Log("JUMP!");
+            rb.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
         }
 
-        if (dashPressed && !isDashing)
+        if (dashQueued && !isDashing)
         {
-            StartCoroutine(Dash());
+            StartCoroutine(DashRoutine());
         }
 
-        jumpPressed = false;
-        dashPressed = false;
+        jumpQueued = false;
+        dashQueued = false;
     }
 
     private void FixedUpdate()
     {
         if (isDashing) return;
 
-        Vector2 newPosition = rb.position + Vector2.right * moveInput * moveSpeed * Time.fixedDeltaTime;
-        rb.MovePosition(newPosition);
+        float moveX = moveInput.x;
+        rb.linearVelocity = new Vector2(moveX * moveSpeed, rb.linearVelocity.y);
     }
 
-    private System.Collections.IEnumerator Dash()
+    private IEnumerator DashRoutine()
     {
         isDashing = true;
         float dashSpeed = dashDistance / dashDuration;
         float elapsed = 0f;
 
-        Vector2 direction = new Vector2(moveInput, 0).normalized;
-        if (direction == Vector2.zero) direction = Vector2.right; // default right if no input
+        Vector2 dashDir = moveInput.x == 0 ? Vector2.right : new Vector2(moveInput.x, 0).normalized;
 
         while (elapsed < dashDuration)
         {
-            rb.MovePosition(rb.position + direction * dashSpeed * Time.fixedDeltaTime);
+            rb.linearVelocity = dashDir * dashSpeed;
             elapsed += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
