@@ -24,6 +24,7 @@ public class LevelPopupUI : MonoBehaviour
 
     private void ContinueLevel()
     {
+        Debug.Log("Level was supposed to change");
         // Load next level or do anything else
         if (!string.IsNullOrEmpty(nextLevelName))
             SceneManager.LoadScene(nextLevelName);
