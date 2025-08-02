@@ -25,17 +25,28 @@ public class PlayerMovement2D : MonoBehaviour
     private bool jumpQueued;
     private bool dashQueued;
 
+    private bool tryPickup = false;
+
+    private PickupItem heldItem;
+
+    private float lastXDir = 1f; // default to right
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         inputActions = new PlayerInputActions();
 
-        inputActions.Player.Move.performed += ctx => moveInput = ctx.ReadValue<Vector2>();
+        inputActions.Player.Move.performed += ctx =>
+        {
+            moveInput = ctx.ReadValue<Vector2>();
+            if (moveInput.x != 0)
+                lastXDir = Mathf.Sign(moveInput.x); // stores -1 or 1
+        };
         inputActions.Player.Move.canceled += ctx => moveInput = Vector2.zero;
 
 
         inputActions.Player.Jump.performed += ctx => jumpQueued = true;
         inputActions.Player.Dash.performed += ctx => dashQueued = true;
+        inputActions.Player.Interact.performed += ctx => tryPickup = true;
     }
 
     private void OnEnable() => inputActions.Enable();
@@ -68,6 +79,12 @@ public class PlayerMovement2D : MonoBehaviour
             StartCoroutine(DashRoutine());
         }
 
+        if (tryPickup)
+        {
+            TryPickupNearbyItem();
+            tryPickup = false;
+        }
+
         jumpQueued = false;
         dashQueued = false;
     }
@@ -86,7 +103,7 @@ public class PlayerMovement2D : MonoBehaviour
         float dashSpeed = dashDistance / dashDuration;
         float elapsed = 0f;
 
-        Vector2 dashDir = moveInput.x == 0 ? Vector2.right : new Vector2(moveInput.x, 0).normalized;
+        Vector2 dashDir = new Vector2(lastXDir, 0f);
 
         while (elapsed < dashDuration)
         {
@@ -106,4 +123,44 @@ public class PlayerMovement2D : MonoBehaviour
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
     }
+
+    void TryPickupNearbyItem()
+    {
+        if (heldItem != null) return; // Don't pick up another if already holding one
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, 1.5f);
+        foreach (var hit in hits)
+        {
+            var pickup = hit.GetComponent<PickupItem>();
+            if (pickup != null)
+            {
+                pickup.AttachToPlayer(transform.Find("HoldPoint"));
+                heldItem = pickup; // Keep track of it
+                break;
+            }
+        }
+    }
+
+    public void DropItem()
+    {
+        
+        if (heldItem != null)
+        {
+            heldItem.transform.parent = null;
+            heldItem.transform.position = transform.position + transform.forward * 1f;
+
+
+            Rigidbody rb = heldItem.GetComponent<Rigidbody>();
+            rb.isKinematic = false;
+            rb.useGravity = true;
+
+            Collider col = heldItem.GetComponent<Collider>();
+            col.enabled = true;
+
+            heldItem = null;
+        }
+    }
+
+
 }
+

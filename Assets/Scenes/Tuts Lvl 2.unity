@@ -11233,7 +11233,7 @@ PrefabInstance:
       objectReference: {fileID: 949003064}
     - target: {fileID: 6777126392370424346, guid: 3418532026db0f649859a4d441613576, type: 3}
       propertyPath: nextLevelName
-      value: Tuts Lvl 2
+      value: Lvl 1
       objectReference: {fileID: 0}
     - target: {fileID: 6777126392370424346, guid: 3418532026db0f649859a4d441613576, type: 3}
       propertyPath: restartButton
